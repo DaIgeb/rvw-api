@@ -1,7 +1,7 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import 'source-map-support/register';
 
-import { authorizer } from './lib/auth';
+import { authorizer } from '../lib/auth';
 
 export const hello: APIGatewayProxyHandler = async (event, _context) => {
   return {

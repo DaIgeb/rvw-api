@@ -1,4 +1,4 @@
-import { CustomAuthorizerHandler } from 'aws-lambda';
+import { CustomAuthorizerHandler, CustomAuthorizerResult, AuthResponseContext } from 'aws-lambda';
 import * as jwt from 'jsonwebtoken';
 import * as jwksClient from 'jwks-rsa';
 
@@ -10,13 +10,14 @@ const authClient = jwksClient({
     jwksUri: `https://${auth0Domain}/.well-known/jwks.json`,
 });
 
-const opts: jwt.VerifyOptions = {    
+const opts: jwt.VerifyOptions = {
     audience: 'https://aws.api.cycled.ch',
     issuer: `https://${auth0Domain}/`,
     algorithms: ['RS256'] // algorithm is RSA http://bit.ly/2xAYygk
 }
 
-export const authorizer: CustomAuthorizerHandler = (event, _, callback) => {
+export const auth: CustomAuthorizerHandler =
+ (event, _, callback) => {
 
     if (!event.authorizationToken) {
         console.log('event.authorizationToker missing')
@@ -111,7 +112,7 @@ export const authorizer: CustomAuthorizerHandler = (event, _, callback) => {
   arn:aws:execute-api:us-west-2:31241241223:d3ul21vxig/prod/POST/get-forms
 
  */
-function generatePolicy(principalId, effect, resource) {
+const generatePolicy = (principalId, effect, resource): CustomAuthorizerResult => {
     let authResponsr = {
         principalId: undefined,
         policyDocument: undefined,
@@ -142,8 +143,13 @@ function generatePolicy(principalId, effect, resource) {
     authResponsr.context = {
         "stringKey": "stringval",
         "numberKey": 123,
-        "booleanKey": true
+        "booleanKey": true,
+        "sub": principalId
     }
 
     return authResponsr;
+}
+
+export const getSub = (context: AuthResponseContext) : string => {
+    return context.sub as string;
 }
