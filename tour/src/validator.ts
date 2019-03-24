@@ -20,7 +20,7 @@ const schema = {
 };
 
 const ajv = new Ajv(); // options can be passed, e.g. {allErrors: true}
-var validator = ajv.compile(schema);
+const validator = ajv.compile(schema);
 
 export const validate = (obj: any): obj is TTour => {
   var valid = validator(obj);
@@ -29,7 +29,6 @@ export const validate = (obj: any): obj is TTour => {
 
     return false;
   }
-
 
   return true;
 }
