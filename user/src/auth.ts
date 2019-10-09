@@ -5,6 +5,7 @@ import {
 } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
 import * as jwksClient from "jwks-rsa";
+import { RsaSigningKey } from 'jwks-rsa';
 
 const auth0Domain = process.env.AUTH0_DOMAIN;
 const authClient = jwksClient({
@@ -76,6 +77,14 @@ export const auth: CustomAuthorizerHandler = (event, _, callback) => {
     });
 };
 
+const isRsaKey = (obj: any): obj is RsaSigningKey => {
+  if ((obj as RsaSigningKey).rsaPublicKey) {
+    return true;
+  }
+
+  return false;
+}
+
 const getSigningKey = (kid: string): Promise<string> => {
   return new Promise((res, rej) => {
     authClient.getSigningKey(kid, (signError, key) => {
@@ -83,7 +92,8 @@ const getSigningKey = (kid: string): Promise<string> => {
         console.log("signing key error", signError);
         return rej(signError);
       }
-      const signingKey = key.publicKey || key.rsaPublicKey;
+
+      const signingKey = isRsaKey(key) ? key.rsaPublicKey : key.publicKey;
       res(signingKey);
     });
   });

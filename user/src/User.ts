@@ -7,11 +7,12 @@ import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
 export type TUser = {
   id: string;
-  route: string;
-  date: string;
-  points: 15 | 20 | 40 | 80 | 150;
-  participants: string[];
+  subject: string;
+  firstName: string;
+  lastName: string;
+  email: string;
   user: string;
+  roles: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -26,13 +27,6 @@ export class User {
 
   public get = (id: string): Promise<TUser> => {
     return new Promise<TUser>((res, rej) => {
-      /*const params = {
-        TableName: table,
-        Key: {
-          subject: { S: id }
-        }
-      };*/
-
       const scanParams: DocumentClient.ScanInput = {
         TableName: table,
         FilterExpression: '#sub = :sub',
@@ -54,7 +48,7 @@ export class User {
 
         console.log(scanParams, result);
         if (result.Items.length !== 1) {
-          rej(new Error("There is no unique item available."));
+          res(undefined);
           return;
         }
 
@@ -64,6 +58,7 @@ export class User {
       });
     });
   };
+
   public list = (): Promise<TUser[]> => {
     return new Promise((res, rej) => {
       const params = {
