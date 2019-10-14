@@ -123,15 +123,16 @@ export class Route {
           }
         } as any));
 
-        const chunks = [];
+        const chunks: Promise<TRoute[]>[] = [];
         let i = 0;
         const len = requests.length;
         while (i < len) {
           chunks.push(
             new Promise<TRoute[]>((res, rej) => {
+              const items = requests.slice(i, (i += 25));
               const params: DocumentClient.BatchWriteItemInput = {
                 RequestItems: {
-                  [table]: requests.slice(i, (i += 25))
+                  [table]: items
                 }
               };
               this._db.batchWrite(params, (error, result) => {
@@ -140,13 +141,13 @@ export class Route {
                   rej(new Error("Couldn't create the tour item."));
                   return;
                 }
-                res([]);
+                res(items.map(ri => (ri.PutRequest.Item as TRoute)));
               });
             })
           );
         }
         Promise.all(chunks)
-          .then(_ => res([]))
+          .then(data => res([].concat(data)))
           .catch(err => rej(err));
       }
     });
