@@ -3,6 +3,7 @@ import { TRoute } from './Route';
 
 const schema = {
   "properties": {
+    "id": {"type": "string", "format": "uuid"},
     "name": { "type": "string" },
     "distance": { "type": "number" },
     "elevation": { "type": "number" }

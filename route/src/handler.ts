@@ -27,26 +27,34 @@ export const get: APIGatewayProxyHandler = async (event, context) => {
   const service = initService(event);
 
   try {
-    const response = await service.get(event.pathParameters.id);
-    return createResponse(200, response);
+    const response = await service.get(decodeURIComponent(event.pathParameters.id));
+    if (response) {
+      return createResponse(200, response);
+    }
+
+    return createResponse(404, undefined);
   } catch (err) {
     console.log(err);
     return createResponse(500, "Couldn't fetch the route item.");
   }
 };
 
-export const create: APIGatewayProxyHandler = async (event, _) => {
+export const create: APIGatewayProxyHandler = async (event, context) => {
+  console.log(event, context);
+  
   const service = initService(event);
   try {
     const newObject = await service.create(JSON.parse(event.body));
     return createResponse(200, newObject);
   } catch (err) {
     console.error(err);
-    return createResponse(500, "Could not creat route");
+    return createResponse(500, "Could not create route");
   }
 };
 
-export const update: APIGatewayProxyHandler = async (event, _) => {
+export const update: APIGatewayProxyHandler = async (event, context) => {
+  console.log(event, context);
+  
   const service = initService(event);
   try {
     const response = await service.update(

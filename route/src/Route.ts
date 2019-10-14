@@ -3,7 +3,8 @@ import * as uuid from 'uuid';
 
 import { table } from './config';
 import { validate } from './validator';
-import { DocumentClient } from 'aws-sdk/clients/dynamodb';
+import { DocumentClient, WriteRequest } from 'aws-sdk/clients/dynamodb';
+import { isArray } from 'util';
 
 export type TRoute = {
   id: string;
@@ -29,7 +30,7 @@ export class Route {
         TableName: table,
         FilterExpression: '#name = :name',
         ExpressionAttributeNames: {
-          "#name": 'name'
+          '#name': 'name'
         },
         ExpressionAttributeValues: {
           ':name': id
@@ -46,7 +47,7 @@ export class Route {
 
         console.log(scanParams, result);
         if (result.Items.length !== 1) {
-          rej(new Error("There is no unique item available."));
+          rej(new Error('There is no unique item available.'));
           return;
         }
 
@@ -73,36 +74,81 @@ export class Route {
     });
   };
 
-  public create = (data: TRoute): Promise<TRoute> => {
-    return new Promise<TRoute>((res, rej) => {
-      if (!validate(data)) {
+  public create = (route: TRoute | TRoute[]): Promise<TRoute | TRoute[]> => {
+    return new Promise<TRoute | TRoute[]>((res, rej) => {
+      const data = (isArray(route) ? route : [route]).map(item => ({
+        ...item,
+        id: uuid.v4()
+      }));
+
+      const invalid = data.some(r => !validate(r));
+      if (invalid) {
         console.error('Validation Failed');
         rej(new Error("Couldn't create the route item."));
         return;
       }
 
       const timestamp = new Date().getTime();
-      const params = {
-        TableName: table,
-        Item: {
-          ...data,
-          id: uuid.v4(),
-          user: this._userEmail,
-          createdAt: timestamp,
-          updatedAt: timestamp
-        }
-      };
 
-      this._db.put(params, (error, result) => {
-        console.log('Put', error, result);
-        if (error) {
-          console.error(error);
-          rej(new Error("Couldn't create the route item."));
-          return;
-        }
+      if (data.length === 1) {
+        const params = {
+          TableName: table,
+          Item: {
+            ...data[0],
+            user: this._userEmail,
+            createdAt: timestamp,
+            updatedAt: timestamp
+          }
+        };
 
-        res((params.Item as any) as TRoute);
-      });
+        this._db.put(params, (error, result) => {
+          console.log('Put', error, result);
+          if (error) {
+            console.error(error);
+            rej(new Error("Couldn't create the route item."));
+            return;
+          }
+
+          res((params.Item as any) as TRoute);
+        });
+      } else {
+        const requests = data.map<WriteRequest>(route => ({
+          PutRequest: {
+            Item: {
+              ...route,
+              user: this._userEmail,
+              createdAt: timestamp,
+              updatedAt: timestamp
+            }
+          }
+        } as any));
+
+        const chunks = [];
+        let i = 0;
+        const len = requests.length;
+        while (i < len) {
+          chunks.push(
+            new Promise<TRoute[]>((res, rej) => {
+              const params: DocumentClient.BatchWriteItemInput = {
+                RequestItems: {
+                  [table]: requests.slice(i, (i += 25))
+                }
+              };
+              this._db.batchWrite(params, (error, result) => {
+                console.log('Put', error, result, JSON.stringify(params, null, 2));
+                if (error) {
+                  rej(new Error("Couldn't create the tour item."));
+                  return;
+                }
+                res([]);
+              });
+            })
+          );
+        }
+        Promise.all(chunks)
+          .then(_ => res([]))
+          .catch(err => rej(err));
+      }
     });
   };
 
