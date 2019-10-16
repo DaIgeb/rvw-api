@@ -84,6 +84,6 @@ export const remove: APIGatewayProxyHandler = async (event, _) => {
 };
 
 const initService = (event: APIGatewayProxyEvent) => {
-  const subject = getSub(event.requestContext.authorizer);
-  return new User(dynamoDb, subject);
+  const subject = event.requestContext.authorizer ? getSub(event.requestContext.authorizer) : 'anonymous';
+  return new Route(dynamoDb, subject);
 };

@@ -77,12 +77,17 @@ export class User {
     });
   };
 
-  public create = (data: TUser | TUser[]): Promise<TUser> => {
+  public create = (user: TUser | TUser[]): Promise<TUser> => {
     return new Promise<TUser>((res, rej) => {
-      let invalid = (isArray(data) ? data : [data]).some(user => !validate(user));
+      const data = (isArray(user) ? user : [user]).map(item => ({
+        ...item,
+        id: uuid.v4()
+      }));
+
+      const invalid = data.some(r => !validate(r));
       if (invalid) {
         console.error('Validation Failed');
-        rej(new Error("Couldn't create the tour item."));
+        rej(new Error("Couldn't create the route item."));
         return;
       }
 
@@ -110,39 +115,44 @@ export class User {
           res((params.Item as any) as TUser);
         });
       } else {
-        const putRequests: WriteRequests = data.map<WriteRequest>(user => {
-          const put: PutRequest = {
+        const putRequests: WriteRequests = data.map<WriteRequest>(user => ({
+          PutRequest: {
             Item: {
-              firstName: { S: user.firstName },
-              lastName: { S: user.lastName },
-              email: { S: user.lastName },
-              id: { S: uuidv4() },
-              user: { S: this._userEmail },
-              createdAt: { N: timestamp.toString() },
-              updatedAt: { N: timestamp.toString() }
+              ...user,
+              id: uuidv4(),
+              user: this._userEmail,
+              createdAt: timestamp,
+              updatedAt: timestamp
             }
-          };
-          const request: WriteRequest = {
-            PutRequest: put
-          };
-
-          return request;
-        });
-        const params: DocumentClient.BatchWriteItemInput = {
-          RequestItems: {
-            [table]: putRequests
           }
-        };
-        this._db.batchWrite(params, (error, result) => {
-          console.log('Put', error, result);
-          if (error) {
-            console.error(error);
-            rej(new Error("Couldn't create the tour item."));
-            return;
-          }
+        } as any));
 
-          res((params.RequestItems[table] as any) as TUser);
-        });
+        const chunks: Promise<TUser[]>[] = [];
+        let i = 0;
+        const len = requests.length;
+        while (i < len) {
+          chunks.push(
+            new Promise<TUser[]>((res, rej) => {
+              const items = requests.slice(i, (i += 25));
+              const params: DocumentClient.BatchWriteItemInput = {
+                RequestItems: {
+                  [table]: items
+                }
+              };
+              this._db.batchWrite(params, (error, result) => {
+                console.log('Put', error, result, JSON.stringify(params, null, 2));
+                if (error) {
+                  rej(new Error("Couldn't create the tour item."));
+                  return;
+                }
+                res(items.map(ri => (ri.PutRequest.Item as TUser)));
+              });
+            })
+          );
+        }
+        Promise.all(chunks)
+          .then(data => res([].concat(data)))
+          .catch(err => rej(err));
       }
     });
   };
