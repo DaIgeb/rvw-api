@@ -1,19 +1,12 @@
 import * as Ajv from 'ajv';
-import { TUser } from './User';
+import { TMember } from './Member';
 
 const schema = {
   "properties": {
-    "id": { "type": "string", "format": "uuid" },
+    "id": {"type": "string", "format": "uuid"},
     "firstName": { "type": "string" },
     "lastName": { "type": "string" },
-    "email": { "type": "string" },
-    "subject": { "type": "string" },
-    "roles": {
-      "type": "array",
-      "items": {
-        "type": "string" 
-      }
-    }
+    "email": { "type": "string", "format": "email" },
   },
   "required": ["firstName", "lastName"],
   "additionalProperties": false
@@ -22,7 +15,7 @@ const schema = {
 const ajv = new Ajv(); // options can be passed, e.g. {allErrors: true}
 const validator = ajv.compile(schema);
 
-export const validate = (obj: any): obj is TUser => {
+export const validate = (obj: any): obj is TMember => {
   var valid = validator(obj);
   if (!valid) {
     console.error(validator.errors);

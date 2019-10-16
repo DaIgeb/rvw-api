@@ -28,7 +28,8 @@ export const getSub = (context: AuthResponseContext): string => {
   return context.sub as string;
 };
 
-export const auth: CustomAuthorizerHandler = (event, _, callback) => {
+export const auth: CustomAuthorizerHandler = (event, context, callback) => {
+  console.log(event, context);
   if (!event.authorizationToken) {
     console.log("event.authorizationToken missing");
     return callback("Unauthorized");

@@ -1,10 +1,9 @@
 import * as AWS from 'aws-sdk';
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 
 import { table } from './config';
 import { validate } from './validator';
-import { DocumentClient, WriteRequests, WriteRequest, PutRequest } from 'aws-sdk/clients/dynamodb';
-import { isArray } from 'util';
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
 export type TUser = {
   id: string;
@@ -22,7 +21,7 @@ export class User {
   constructor(
     private _db: AWS.DynamoDB.DocumentClient,
     private _userEmail: string
-  ) { }
+  ) {}
 
   public currentSubject = () => this._userEmail;
 
@@ -32,7 +31,7 @@ export class User {
         TableName: table,
         FilterExpression: '#sub = :sub',
         ExpressionAttributeNames: {
-          "#sub": 'subject'
+          '#sub': 'subject'
         },
         ExpressionAttributeValues: {
           ':sub': id
@@ -77,15 +76,14 @@ export class User {
     });
   };
 
-  public create = (user: TUser | TUser[]): Promise<TUser> => {
+  public create = (user: TUser): Promise<TUser> => {
     return new Promise<TUser>((res, rej) => {
-      const data = (isArray(user) ? user : [user]).map(item => ({
-        ...item,
+      const data = {
+        ...user,
         id: uuid.v4()
-      }));
+      };
 
-      const invalid = data.some(r => !validate(r));
-      if (invalid) {
+      if (!validate(data)) {
         console.error('Validation Failed');
         rej(new Error("Couldn't create the route item."));
         return;
@@ -93,67 +91,25 @@ export class User {
 
       const timestamp = new Date().getTime();
 
-      if (!isArray(data)) {
-        const params = {
-          TableName: table,
-          Item: {
-            ...data,
-            id: uuidv4(),
-            user: this._userEmail,
-            createdAt: timestamp,
-            updatedAt: timestamp
-          }
-        };
-        this._db.put(params, (error, result) => {
-          console.log('Put', error, result);
-          if (error) {
-            console.error(error);
-            rej(new Error("Couldn't create the tour item."));
-            return;
-          }
-
-          res((params.Item as any) as TUser);
-        });
-      } else {
-        const putRequests: WriteRequests = data.map<WriteRequest>(user => ({
-          PutRequest: {
-            Item: {
-              ...user,
-              id: uuidv4(),
-              user: this._userEmail,
-              createdAt: timestamp,
-              updatedAt: timestamp
-            }
-          }
-        } as any));
-
-        const chunks: Promise<TUser[]>[] = [];
-        let i = 0;
-        const len = requests.length;
-        while (i < len) {
-          chunks.push(
-            new Promise<TUser[]>((res, rej) => {
-              const items = requests.slice(i, (i += 25));
-              const params: DocumentClient.BatchWriteItemInput = {
-                RequestItems: {
-                  [table]: items
-                }
-              };
-              this._db.batchWrite(params, (error, result) => {
-                console.log('Put', error, result, JSON.stringify(params, null, 2));
-                if (error) {
-                  rej(new Error("Couldn't create the tour item."));
-                  return;
-                }
-                res(items.map(ri => (ri.PutRequest.Item as TUser)));
-              });
-            })
-          );
+      const params = {
+        TableName: table,
+        Item: {
+          ...data,
+          user: this._userEmail,
+          createdAt: timestamp,
+          updatedAt: timestamp
         }
-        Promise.all(chunks)
-          .then(data => res([].concat(data)))
-          .catch(err => rej(err));
-      }
+      };
+      this._db.put(params, (error, result) => {
+        console.log('Put', error, result);
+        if (error) {
+          console.error(error);
+          rej(new Error("Couldn't create the tour item."));
+          return;
+        }
+
+        res((params.Item as any) as TUser);
+      });
     });
   };
 

@@ -3,18 +3,19 @@ export { auth } from "./auth";
 import { DynamoDB } from "aws-sdk";
 import { APIGatewayProxyHandler, APIGatewayProxyEvent } from "aws-lambda";
 
-import { Tour, TTour } from "./Tour";
+import { Tour } from "./Tour";
 import { createResponse } from "./util";
 import { getSub } from "./auth";
 
 const dynamoDb = new DynamoDB.DocumentClient();
 
 export const list: APIGatewayProxyHandler = async (event, _) => {
-  const tour = initService(event);
+  const service = initService(event);
   try {
-    const data = await tour.list();
+    const data = await service.list();
+    console.log(JSON.stringify(data, null, 2));
 
-    return createResponse(200, hideParticipants(data, tour.currentSubject()));
+    return createResponse(200, data);
   } catch (err) {
     console.error(err);
     return createResponse(500, "Could not get data");
@@ -23,32 +24,40 @@ export const list: APIGatewayProxyHandler = async (event, _) => {
 
 export const get: APIGatewayProxyHandler = async (event, context) => {
   console.log(event, context);
-  const tour = initService(event);
+  const service = initService(event);
 
   try {
-    const response = await tour.get(event.pathParameters.id);
-    return createResponse(200, response);
+    const response = await service.get(decodeURIComponent(event.pathParameters.id));
+    if (response) {
+      return createResponse(200, response);
+    }
+
+    return createResponse(404, undefined);
   } catch (err) {
     console.log(err);
-    return createResponse(500, "Couldn't fetch the tour item.");
+    return createResponse(500, "Couldn't fetch the route item.");
   }
 };
 
-export const create: APIGatewayProxyHandler = async (event, _) => {
-  const tour = initService(event);
+export const create: APIGatewayProxyHandler = async (event, context) => {
+  console.log(event, context);
+  
+  const service = initService(event);
   try {
-    const newTour = await tour.create(JSON.parse(event.body));
-    return createResponse(200, newTour);
+    const newObject = await service.create(JSON.parse(event.body));
+    return createResponse(200, newObject);
   } catch (err) {
     console.error(err);
-    return createResponse(500, "Could not creat tour");
+    return createResponse(500, "Could not create route");
   }
 };
 
-export const update: APIGatewayProxyHandler = async (event, _) => {
-  const tour = initService(event);
+export const update: APIGatewayProxyHandler = async (event, context) => {
+  console.log(event, context);
+  
+  const service = initService(event);
   try {
-    const response = await tour.update(
+    const response = await service.update(
       event.pathParameters.id,
       JSON.parse(event.body)
     );
@@ -57,15 +66,15 @@ export const update: APIGatewayProxyHandler = async (event, _) => {
   } catch (error) {
     console.error(error);
 
-    return createResponse(500, "Failed to update the tour item");
+    return createResponse(500, "Failed to update the route item");
   }
 };
 
 export const remove: APIGatewayProxyHandler = async (event, _) => {
-  const tour = initService(event);
+  const service = initService(event);
 
   try {
-    const deleteResponse = await tour.remove(event.pathParameters.id);
+    const deleteResponse = await service.remove(event.pathParameters.id);
 
     return createResponse(200, deleteResponse);
   } catch (err) {
@@ -74,16 +83,7 @@ export const remove: APIGatewayProxyHandler = async (event, _) => {
   }
 };
 
-const hideParticipants = (tours: TTour[], personId: string) => {
-  return tours.map(t => ({
-    ...t,
-    participants: t.participants.map((p: string, idx) =>
-      p !== personId ? idx.toString() : p
-    )
-  }));
-};
-
 const initService = (event: APIGatewayProxyEvent) => {
-  const subject = getSub(event.requestContext.authorizer);
+  const subject = event.requestContext.authorizer ? getSub(event.requestContext.authorizer) : 'anonymous';
   return new Tour(dynamoDb, subject);
 };

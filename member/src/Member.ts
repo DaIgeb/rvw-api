@@ -6,18 +6,17 @@ import { validate } from './validator';
 import { DocumentClient, WriteRequest } from 'aws-sdk/clients/dynamodb';
 import { isArray } from 'util';
 
-export type TTour = {
+export type TMember = {
   id: string;
-  tour: string;
-  date: string;
-  points: 15 | 20 | 40 | 80 | 150;
-  participants: string[];
+  firstName: string;
+  lastName: number;
+  email: string;
   user: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export class Tour {
+export class Member {
   constructor(
     private _db: AWS.DynamoDB.DocumentClient,
     private _userEmail: string
@@ -25,8 +24,8 @@ export class Tour {
 
   public currentSubject = () => this._userEmail;
 
-  public get = (id: string): Promise<TTour> => {
-    return new Promise<TTour>((res, rej) => {
+  public get = (id: string): Promise<TMember> => {
+    return new Promise<TMember>((res, rej) => {
       const params = {
         TableName: table,
         Key: {
@@ -37,18 +36,15 @@ export class Tour {
       this._db.get(params, (error, result) => {
         if (error) {
           console.error(error);
-          rej(new Error("Couldn't fetch the tour item."));
+          rej(new Error("Couldn't fetch the member item."));
           return;
         }
 
-        const tour = result.Item as TTour;
-
-        res(tour);
+        res(result.Item as TMember);
       });
     });
   };
-  
-  public list = (): Promise<TTour[]> => {
+  public list = (): Promise<TMember[]> => {
     return new Promise((res, rej) => {
       const params = {
         TableName: table
@@ -57,17 +53,17 @@ export class Tour {
       this._db.scan(params, (error, result) => {
         if (error) {
           console.error(error);
-          rej(new Error("Couldn't fetch the tours."));
+          rej(new Error("Couldn't fetch the members."));
         } else {
-          res(result.Items as TTour[]);
+          res(result.Items as TMember[]);
         }
       });
     });
   };
 
-  public create = (tour: TTour | TTour[]): Promise<TTour | TTour[]> => {
-    return new Promise<TTour | TTour[]>((res, rej) => {
-      const data = (isArray(tour) ? tour : [tour]).map(item => ({
+  public create = (member: TMember | TMember[]): Promise<TMember | TMember[]> => {
+    return new Promise<TMember | TMember[]>((res, rej) => {
+      const data = (isArray(member) ? member : [member]).map(item => ({
         ...item,
         id: uuid.v4()
       }));
@@ -75,7 +71,7 @@ export class Tour {
       const invalid = data.some(r => !validate(r));
       if (invalid) {
         console.error('Validation Failed');
-        rej(new Error("Couldn't create the tour item."));
+        rej(new Error("Couldn't create the member item."));
         return;
       }
 
@@ -96,17 +92,17 @@ export class Tour {
           console.log('Put', error, result);
           if (error) {
             console.error(error);
-            rej(new Error("Couldn't create the tour item."));
+            rej(new Error("Couldn't create the member item."));
             return;
           }
 
-          res((params.Item as any) as TTour);
+          res((params.Item as any) as TMember);
         });
       } else {
-        const requests = data.map<WriteRequest>(tour => ({
+        const requests = data.map<WriteRequest>(member => ({
           PutRequest: {
             Item: {
-              ...tour,
+              ...member,
               user: this._userEmail,
               createdAt: timestamp,
               updatedAt: timestamp
@@ -114,12 +110,12 @@ export class Tour {
           }
         } as any));
 
-        const chunks: Promise<TTour[]>[] = [];
+        const chunks: Promise<TMember[]>[] = [];
         let i = 0;
         const len = requests.length;
         while (i < len) {
           chunks.push(
-            new Promise<TTour[]>((res, rej) => {
+            new Promise<TMember[]>((res, rej) => {
               const items = requests.slice(i, (i += 25));
               const params: DocumentClient.BatchWriteItemInput = {
                 RequestItems: {
@@ -129,10 +125,10 @@ export class Tour {
               this._db.batchWrite(params, (error, result) => {
                 console.log('Put', error, result, JSON.stringify(params, null, 2));
                 if (error) {
-                  rej(new Error("Couldn't create the tour item."));
+                  rej(new Error("Couldn't create the member item."));
                   return;
                 }
-                res(items.map(ri => (ri.PutRequest.Item as TTour)));
+                res(items.map(ri => (ri.PutRequest.Item as TMember)));
               });
             })
           );
@@ -144,16 +140,16 @@ export class Tour {
     });
   };
 
-  public update = (id: string, tour: TTour): Promise<TTour> => {
-    return new Promise<TTour>((res, rej) => {
+  public update = (id: string, member: TMember): Promise<TMember> => {
+    return new Promise<TMember>((res, rej) => {
       const data = {
-        ...tour,
+        ...member,
         id
       };
 
       if (!validate(data)) {
         console.error('Validation Failed');
-        rej(new Error("Couldn't create the tour item."));
+        rej(new Error("Couldn't create the member item."));
         return;
       }
 
@@ -169,11 +165,11 @@ export class Tour {
       this._db.put(params, (error, _) => {
         if (error) {
           console.error(error);
-          rej(new Error("Couldn't create the tour item."));
+          rej(new Error("Couldn't create the member item."));
           return;
         }
 
-        res(params.Item as TTour);
+        res(params.Item as TMember);
       });
     });
   };

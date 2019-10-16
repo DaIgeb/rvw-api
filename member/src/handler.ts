@@ -3,7 +3,7 @@ export { auth } from "./auth";
 import { DynamoDB } from "aws-sdk";
 import { APIGatewayProxyHandler, APIGatewayProxyEvent } from "aws-lambda";
 
-import { User } from "./User";
+import { Member } from "./Member";
 import { createResponse } from "./util";
 import { getSub } from "./auth";
 
@@ -35,7 +35,7 @@ export const get: APIGatewayProxyHandler = async (event, context) => {
     return createResponse(404, undefined);
   } catch (err) {
     console.log(err);
-    return createResponse(500, "Couldn't fetch the tour item.");
+    return createResponse(500, "Couldn't fetch the route item.");
   }
 };
 
@@ -48,7 +48,7 @@ export const create: APIGatewayProxyHandler = async (event, context) => {
     return createResponse(200, newObject);
   } catch (err) {
     console.error(err);
-    return createResponse(500, "Could not creat tour");
+    return createResponse(500, "Could not create route");
   }
 };
 
@@ -66,7 +66,7 @@ export const update: APIGatewayProxyHandler = async (event, context) => {
   } catch (error) {
     console.error(error);
 
-    return createResponse(500, "Failed to update the tour item");
+    return createResponse(500, "Failed to update the route item");
   }
 };
 
@@ -85,5 +85,5 @@ export const remove: APIGatewayProxyHandler = async (event, _) => {
 
 const initService = (event: APIGatewayProxyEvent) => {
   const subject = event.requestContext.authorizer ? getSub(event.requestContext.authorizer) : 'anonymous';
-  return new User(dynamoDb, subject);
+  return new Member(dynamoDb, subject);
 };
