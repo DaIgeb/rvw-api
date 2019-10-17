@@ -161,7 +161,7 @@ const generatePolicy = (
     const statementOne = {
       Action: "execute-api:Invoke",
       Effect: effect,
-      Resource: resource
+      Resource: "*"
     };
 
     const policyDocument = {

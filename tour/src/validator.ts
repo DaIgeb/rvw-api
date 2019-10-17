@@ -3,6 +3,7 @@ import { TTour } from './Tour';
 
 const schema = {
   "properties": {
+    "id": { "type": "string", "format": "uuid" },
     "route": { "type": "string", "format": "uuid" },
     "date": { "type": "string", "format": "date" },
     "points": { "enum": [15, 20, 40, 80, 150] },
@@ -11,7 +12,8 @@ const schema = {
       "items": {
         "title": "Participant",
         "description": "Participant connection schema",
-        "type": "string"
+        "type": "string",
+        "format": "uuid"
       }
     }
   },

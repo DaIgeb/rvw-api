@@ -1,3 +1,5 @@
+org: danielsls
+app: rvw-tour-v1-app
 service:
   name: rvw-tour-v1
 
@@ -26,6 +28,8 @@ provider:
         - dynamodb:BatchWriteItem 
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
   region: eu-central-1
+  logs:
+    restApi: true
 
 functions:
   auth:
@@ -80,6 +84,7 @@ resources:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
           gatewayresponse.header.Access-Control-Allow-Methods: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
         ResponseType: EXPIRED_TOKEN
         RestApiId:
           Ref: 'ApiGatewayRestApi'
@@ -91,6 +96,7 @@ resources:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
           gatewayresponse.header.Access-Control-Allow-Methods: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
         ResponseType: UNAUTHORIZED
         RestApiId:
           Ref: 'ApiGatewayRestApi'
@@ -102,6 +108,7 @@ resources:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
           gatewayresponse.header.Access-Control-Allow-Methods: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
         ResponseType: DEFAULT_4XX
         RestApiId:
           Ref: 'ApiGatewayRestApi'
