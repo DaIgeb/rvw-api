@@ -1,5 +1,5 @@
 org: danielsls
-app: rvw-userv1-app
+app: rvw
 service:
   name: rvw-user-v1
 
@@ -27,6 +27,8 @@ provider:
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
   region: eu-central-1
+  logs:
+    restApi: true
 
 functions:
   auth:

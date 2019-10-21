@@ -1,3 +1,5 @@
+org: danielsls
+app: rvw
 service:
   name: rvw-member-v1
 
@@ -26,6 +28,8 @@ provider:
         - dynamodb:BatchWriteItem 
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
   region: eu-central-1
+  logs:
+    restApi: true
 
 functions:
   auth:
@@ -45,6 +49,7 @@ functions:
           path: /
           method: get
           cors: true
+          authorizer: auth  
   get:
     handler: src/handler.get
     events:
@@ -52,6 +57,7 @@ functions:
           path: /{id}
           method: get
           cors: true
+          authorizer: auth
   update:
     handler: src/handler.update
     events:

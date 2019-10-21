@@ -1,3 +1,5 @@
+org: danielsls
+app: rvw
 service:
   name: rvw-route-v1
 
@@ -26,6 +28,8 @@ provider:
         - dynamodb:BatchWriteItem 
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
   region: eu-central-1
+  logs:
+    restApi: true
 
 functions:
   auth:

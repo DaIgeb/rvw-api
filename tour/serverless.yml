@@ -1,5 +1,5 @@
 org: danielsls
-app: rvw-tour-v1-app
+app: rvw
 service:
   name: rvw-tour-v1
 
