@@ -11,6 +11,11 @@ export type TMember = {
   firstName: string;
   lastName: number;
   email: string;
+  address?: string;
+  zipCode?: number;
+  city?: number;
+  enlistment?: string;
+  gender?: 'female' | 'male' | 'unkown'
   user: string;
   createdAt: string;
   updatedAt: string;
@@ -20,7 +25,7 @@ export class Member {
   constructor(
     private _db: AWS.DynamoDB.DocumentClient,
     private _userEmail: string
-  ) {}
+  ) { }
 
   public currentSubject = () => this._userEmail;
 
@@ -134,7 +139,7 @@ export class Member {
           );
         }
         Promise.all(chunks)
-          .then(data => res([].concat(data)))
+          .then(data => res([].concat(...data)))
           .catch(err => rej(err));
       }
     });

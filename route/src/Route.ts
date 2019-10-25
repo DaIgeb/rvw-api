@@ -147,7 +147,7 @@ export class Route {
           );
         }
         Promise.all(chunks)
-          .then(data => res([].concat(data)))
+          .then(data => res([].concat(...data)))
           .catch(err => rej(err));
       }
     });

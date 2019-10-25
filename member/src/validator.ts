@@ -3,10 +3,15 @@ import { TMember } from './Member';
 
 const schema = {
   "properties": {
-    "id": {"type": "string", "format": "uuid"},
+    "id": { "type": "string", "format": "uuid" },
     "firstName": { "type": "string" },
     "lastName": { "type": "string" },
     "email": { "type": "string", "format": "email" },
+    "adress": { "type": "string" },
+    "zipCode": { "type": "number" },
+    "city": { "type": "string" },
+    "enlistment": { "type": "string", "format": "date" },
+    "gender": { "type": "string", "enum": ["female", "male", "unkown"] },
   },
   "required": ["firstName", "lastName"],
   "additionalProperties": false
