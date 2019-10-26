@@ -2,35 +2,21 @@ import * as AWS from 'aws-sdk';
 import * as uuid from 'uuid';
 
 import { table } from './config';
-import { validate } from './validator';
 import { DocumentClient, WriteRequest } from 'aws-sdk/clients/dynamodb';
 import { isArray } from 'util';
 
-export type TMember = {
-  id: string;
-  firstName: string;
-  lastName: number;
-  email: string;
-  address?: string;
-  zipCode?: number;
-  city?: number;
-  enlistment?: string;
-  gender?: 'female' | 'male' | 'unkown'
-  user: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export class Member {
+export class DynamoDBConnector<TModel> {
   constructor(
     private _db: AWS.DynamoDB.DocumentClient,
-    private _userEmail: string
-  ) { }
+    private _userEmail: string,
+    private validate: (obj: any) => obj is TModel,
+    private names: { plural: string; singular: string }
+  ) {}
 
   public currentSubject = () => this._userEmail;
 
-  public get = (id: string): Promise<TMember> => {
-    return new Promise<TMember>((res, rej) => {
+  public get = (id: string): Promise<TModel> => {
+    return new Promise<TModel>((res, rej) => {
       const params = {
         TableName: table,
         Key: {
@@ -41,15 +27,15 @@ export class Member {
       this._db.get(params, (error, result) => {
         if (error) {
           console.error(error);
-          rej(new Error("Couldn't fetch the member item."));
+          rej(new Error(`Couldn't fetch the ${this.names.singular} item.`));
           return;
         }
 
-        res(result.Item as TMember);
+        res(result.Item as TModel);
       });
     });
   };
-  public list = (): Promise<TMember[]> => {
+  public list = (): Promise<TModel[]> => {
     return new Promise((res, rej) => {
       const params = {
         TableName: table
@@ -58,25 +44,25 @@ export class Member {
       this._db.scan(params, (error, result) => {
         if (error) {
           console.error(error);
-          rej(new Error("Couldn't fetch the members."));
+          rej(new Error(`Couldn't fetch the ${this.names.plural}.`));
         } else {
-          res(result.Items as TMember[]);
+          res(result.Items as TModel[]);
         }
       });
     });
   };
 
-  public create = (member: TMember | TMember[]): Promise<TMember | TMember[]> => {
-    return new Promise<TMember | TMember[]>((res, rej) => {
-      const data = (isArray(member) ? member : [member]).map(item => ({
+  public create = (items: TModel | TModel[]): Promise<TModel | TModel[]> => {
+    return new Promise<TModel | TModel[]>((res, rej) => {
+      const data = (isArray(items) ? items : [items]).map(item => ({
         ...item,
         id: uuid.v4()
       }));
 
-      const invalid = data.some(r => !validate(r));
+      const invalid = data.some(r => !this.validate(r));
       if (invalid) {
         console.error('Validation Failed');
-        rej(new Error("Couldn't create the member item."));
+        rej(new Error(`Couldn't create the ${this.names.singular}.`));
         return;
       }
 
@@ -97,30 +83,33 @@ export class Member {
           console.log('Put', error, result);
           if (error) {
             console.error(error);
-            rej(new Error("Couldn't create the member item."));
+            rej(new Error(`Couldn't create the ${this.names.singular}.`));
             return;
           }
 
-          res((params.Item as any) as TMember);
+          res((params.Item as any) as TModel);
         });
       } else {
-        const requests = data.map<WriteRequest>(member => ({
-          PutRequest: {
-            Item: {
-              ...member,
-              user: this._userEmail,
-              createdAt: timestamp,
-              updatedAt: timestamp
-            }
-          }
-        } as any));
+        const requests = data.map<WriteRequest>(
+          member =>
+            ({
+              PutRequest: {
+                Item: {
+                  ...member,
+                  user: this._userEmail,
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }
+              }
+            } as any)
+        );
 
-        const chunks: Promise<TMember[]>[] = [];
+        const chunks: Promise<TModel[]>[] = [];
         let i = 0;
         const len = requests.length;
         while (i < len) {
           chunks.push(
-            new Promise<TMember[]>((res, rej) => {
+            new Promise<TModel[]>((res, rej) => {
               const items = requests.slice(i, (i += 25));
               const params: DocumentClient.BatchWriteItemInput = {
                 RequestItems: {
@@ -128,12 +117,17 @@ export class Member {
                 }
               };
               this._db.batchWrite(params, (error, result) => {
-                console.log('Put', error, result, JSON.stringify(params, null, 2));
+                console.log(
+                  'Put',
+                  error,
+                  result,
+                  JSON.stringify(params, null, 2)
+                );
                 if (error) {
-                  rej(new Error("Couldn't create the member item."));
+                  rej(new Error(`Couldn't create the ${this.names.singular}.`));
                   return;
                 }
-                res(items.map(ri => (ri.PutRequest.Item as TMember)));
+                res(items.map(ri => ri.PutRequest.Item as any as TModel));
               });
             })
           );
@@ -145,16 +139,16 @@ export class Member {
     });
   };
 
-  public update = (id: string, member: TMember): Promise<TMember> => {
-    return new Promise<TMember>((res, rej) => {
+  public update = (id: string, item: TModel): Promise<TModel> => {
+    return new Promise<TModel>((res, rej) => {
       const data = {
-        ...member,
+        ...item,
         id
       };
 
-      if (!validate(data)) {
+      if (!this.validate(data)) {
         console.error('Validation Failed');
-        rej(new Error("Couldn't create the member item."));
+        rej(new Error(`Couldn't create the ${this.names.singular}.`));
         return;
       }
 
@@ -170,11 +164,11 @@ export class Member {
       this._db.put(params, (error, _) => {
         if (error) {
           console.error(error);
-          rej(new Error("Couldn't create the member item."));
+          rej(new Error(`Couldn't create the ${this.names.singular}.`));
           return;
         }
 
-        res(params.Item as TMember);
+        res(params.Item as TModel);
       });
     });
   };
