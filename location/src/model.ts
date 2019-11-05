@@ -30,6 +30,7 @@ type Restaurant = {
 export type Model = {
   id: string;
   name: string;
+  identifier: string;
   street?: number;
   country?: string;
   address?: string;
@@ -46,6 +47,7 @@ export const schema = {
   properties: {
     id: { type: 'string', format: 'uuid' },
     name: { type: 'string' },
+    identifier: { type: 'string' },
     street: { type: 'string' },
     country: { type: 'string' },
     zipCode: { type: 'string' },
