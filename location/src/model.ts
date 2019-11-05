@@ -16,13 +16,13 @@ type Restaurant = {
       from: string;
       until: string;
       weekday:
-        | 'Monday'
-        | 'Tuesday'
-        | 'Wednesday'
-        | 'Thursday'
-        | 'Friday'
-        | 'Saturday'
-        | 'Sunday';
+      | 'Monday'
+      | 'Tuesday'
+      | 'Wednesday'
+      | 'Thursday'
+      | 'Friday'
+      | 'Saturday'
+      | 'Sunday';
     }[];
   }[];
 }
@@ -68,7 +68,6 @@ export const schema = {
           phone: { type: 'string' },
           businessHours: {
             type: 'array',
-            minItems: 1,
             items: {
               title: 'BusinessHours',
               type: 'object',
@@ -93,7 +92,7 @@ export const schema = {
             }
           }
         },
-        required: ['businessHours', 'from', 'until'],
+        required: ['businessHours', 'from'],
         additionalProperties: false
       }
     }
