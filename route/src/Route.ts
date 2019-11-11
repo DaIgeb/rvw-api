@@ -1,20 +1,10 @@
 import * as AWS from 'aws-sdk';
 import * as uuid from 'uuid';
+import { IList, IDetail, validate } from 'rvw-model/lib/route';
 
 import { table } from './config';
-import { validate } from './validator';
-import { DocumentClient, WriteRequest } from 'aws-sdk/clients/dynamodb';
+import { DocumentClient, WriteRequest, ScanInput } from 'aws-sdk/clients/dynamodb';
 import { isArray } from 'util';
-
-export type TRoute = {
-  id: string;
-  name: string;
-  distance: number;
-  elevation: number;
-  user: string;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export class Route {
   constructor(
@@ -24,8 +14,8 @@ export class Route {
 
   public currentSubject = () => this._userEmail;
 
-  public get = (id: string): Promise<TRoute> => {
-    return new Promise<TRoute>((res, rej) => {
+  public get = (id: string): Promise<IDetail> => {
+    return new Promise<IDetail>((res, rej) => {
       const scanParams: DocumentClient.ScanInput = {
         TableName: table,
         FilterExpression: '#name = :name',
@@ -51,16 +41,21 @@ export class Route {
           return;
         }
 
-        const route = result.Items[0] as TRoute;
+        const route = result.Items[0] as IDetail;
 
         res(route);
       });
     });
   };
-  public list = (): Promise<TRoute[]> => {
+  public list = (): Promise<IList[]> => {
     return new Promise((res, rej) => {
-      const params = {
-        TableName: table
+      const params: ScanInput = {
+        TableName: table,
+        AttributesToGet: [
+          'id',
+          'name',
+          'type'
+        ]
       };
 
       this._db.scan(params, (error, result) => {
@@ -68,20 +63,20 @@ export class Route {
           console.error(error);
           rej(new Error("Couldn't fetch the routes."));
         } else {
-          res(result.Items as TRoute[]);
+          res(result.Items as IList[]);
         }
       });
     });
   };
 
-  public create = (route: TRoute | TRoute[]): Promise<TRoute | TRoute[]> => {
-    return new Promise<TRoute | TRoute[]>((res, rej) => {
+  public create = (route: IDetail | IDetail[]): Promise<IDetail | IDetail[]> => {
+    return new Promise<IDetail | IDetail[]>((res, rej) => {
       const data = (isArray(route) ? route : [route]).map(item => ({
         ...item,
         id: uuid.v4()
       }));
 
-      const invalid = data.some(r => !validate(r));
+      const invalid = data.some(r => !validate(r, console));
       if (invalid) {
         console.error('Validation Failed');
         rej(new Error("Couldn't create the route item."));
@@ -109,7 +104,7 @@ export class Route {
             return;
           }
 
-          res((params.Item as any) as TRoute);
+          res((params.Item as any) as IDetail);
         });
       } else {
         const requests = data.map<WriteRequest>(route => ({
@@ -123,12 +118,12 @@ export class Route {
           }
         } as any));
 
-        const chunks: Promise<TRoute[]>[] = [];
+        const chunks: Promise<IDetail[]>[] = [];
         let i = 0;
         const len = requests.length;
         while (i < len) {
           chunks.push(
-            new Promise<TRoute[]>((res, rej) => {
+            new Promise<IDetail[]>((res, rej) => {
               const items = requests.slice(i, (i += 25));
               const params: DocumentClient.BatchWriteItemInput = {
                 RequestItems: {
@@ -141,7 +136,7 @@ export class Route {
                   rej(new Error("Couldn't create the tour item."));
                   return;
                 }
-                res(items.map(ri => (ri.PutRequest.Item as TRoute)));
+                res(items.map(ri => (ri.PutRequest.Item as any as IDetail)));
               });
             })
           );
@@ -153,14 +148,14 @@ export class Route {
     });
   };
 
-  public update = (id: string, route: TRoute): Promise<TRoute> => {
-    return new Promise<TRoute>((res, rej) => {
+  public update = (id: string, route: IDetail): Promise<IDetail> => {
+    return new Promise<IDetail>((res, rej) => {
       const data = {
         ...route,
         id
       };
 
-      if (!validate(data)) {
+      if (!validate(data, console)) {
         console.error('Validation Failed');
         rej(new Error("Couldn't create the route item."));
         return;
@@ -182,7 +177,7 @@ export class Route {
           return;
         }
 
-        res(params.Item as TRoute);
+        res(params.Item as IDetail);
       });
     });
   };
