@@ -95,7 +95,7 @@ function initService(event: APIGatewayProxyEvent) {
 
   const dynamoDb = new DynamoDB.DocumentClient();
 
-  return new DynamoDBConnector<Model>(dynamoDb, subject, validate, names);
+  return new DynamoDBConnector<Model>(dynamoDb, subject, (obj): obj is Model => validate(obj, console), names);
 }
 
 function createResponse(statusCode: number, content: any): HttpResponse {
