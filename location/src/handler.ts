@@ -5,8 +5,8 @@ import { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
 
 import { DynamoDBConnector } from './DynamoDBConnector';
 import { getSub } from './auth';
-import { Model, names } from './model';
-import { validate } from './validator';
+import { names } from './model';
+import { validate, Model } from 'rvw-model/lib/location';
 
 type TAction<TResponse> = (
   service: DynamoDBConnector<Model>

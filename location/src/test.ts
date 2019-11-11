@@ -1,5 +1,4 @@
-import { validate } from './validator';
-import { Model } from './model';
+import { validate, Model } from 'rvw-model/lib/location';
 
 const obj = {
   name: 'Test',
