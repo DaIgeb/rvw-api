@@ -19,7 +19,7 @@ const obj = {
     }
   ]
 };
-const result = validate(obj);
+const result = validate(obj, console);
 if (result) {
   const model = obj as Model;
   switch (model.type) {
