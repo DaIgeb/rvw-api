@@ -5,11 +5,11 @@ import { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
 
 import { DynamoDBConnector } from './DynamoDBConnector';
 import { getSub } from './auth';
-import { names } from './model';
-import { validate, Model } from 'rvw-model/lib/location';
+import { validate, Detail, IList } from 'rvw-model/lib/location';
+import { names } from 'rvw-model/lib/location/model';
 
 type TAction<TResponse> = (
-  service: DynamoDBConnector<Model>
+  service: DynamoDBConnector<Detail, IList>
 ) => Promise<TResponse>;
 
 interface HttpResponse {
@@ -95,7 +95,19 @@ function initService(event: APIGatewayProxyEvent) {
 
   const dynamoDb = new DynamoDB.DocumentClient();
 
-  return new DynamoDBConnector<Model>(dynamoDb, subject, (obj): obj is Model => validate(obj, console), names);
+  return new DynamoDBConnector<Detail, IList>(dynamoDb, subject, (obj): obj is Detail => validate(obj, console), names, [
+    'id',
+    'name',
+    'identifier',
+    'street',
+    'country',
+    'address',
+    'zipCode',
+    'city',
+    'longitude',
+    'latitude',
+    'type'
+  ]);
 }
 
 function createResponse(statusCode: number, content: any): HttpResponse {

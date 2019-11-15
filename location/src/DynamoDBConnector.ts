@@ -5,18 +5,19 @@ import { table } from './config';
 import { DocumentClient, WriteRequest } from 'aws-sdk/clients/dynamodb';
 import { isArray } from 'util';
 
-export class DynamoDBConnector<TModel> {
+export class DynamoDBConnector<TDetail, TList> {
   constructor(
     private _db: AWS.DynamoDB.DocumentClient,
     private _userEmail: string,
-    private validate: (obj: any) => obj is TModel,
-    private names: { plural: string; singular: string }
-  ) {}
+    private validate: (obj: any) => obj is TDetail,
+    private names: { plural: string; singular: string },
+    private listAttributes: string[]
+  ) { }
 
   public currentSubject = () => this._userEmail;
 
-  public get = (id: string): Promise<TModel> => {
-    return new Promise<TModel>((res, rej) => {
+  public get = (id: string): Promise<TDetail> => {
+    return new Promise<TDetail>((res, rej) => {
       const params = {
         TableName: table,
         Key: {
@@ -31,14 +32,15 @@ export class DynamoDBConnector<TModel> {
           return;
         }
 
-        res(result.Item as TModel);
+        res(result.Item as TDetail);
       });
     });
   };
-  public list = (): Promise<TModel[]> => {
+  public list = (): Promise<TList[]> => {
     return new Promise((res, rej) => {
       const params = {
-        TableName: table
+        TableName: table,
+        AttributesToGet: this.listAttributes
       };
 
       this._db.scan(params, (error, result) => {
@@ -46,14 +48,14 @@ export class DynamoDBConnector<TModel> {
           console.error(error);
           rej(new Error(`Couldn't fetch the ${this.names.plural}.`));
         } else {
-          res(result.Items as TModel[]);
+          res(result.Items as TList[]);
         }
       });
     });
   };
 
-  public create = (items: TModel | TModel[]): Promise<TModel | TModel[]> => {
-    return new Promise<TModel | TModel[]>((res, rej) => {
+  public create = (items: TDetail | TDetail[]): Promise<TDetail | TDetail[]> => {
+    return new Promise<TDetail | TDetail[]>((res, rej) => {
       const data = (isArray(items) ? items : [items]).map(item => ({
         ...item,
         id: uuid.v4()
@@ -87,7 +89,7 @@ export class DynamoDBConnector<TModel> {
             return;
           }
 
-          res((params.Item as any) as TModel);
+          res((params.Item as any) as TDetail);
         });
       } else {
         const requests = data.map<WriteRequest>(
@@ -104,12 +106,12 @@ export class DynamoDBConnector<TModel> {
             } as any)
         );
 
-        const chunks: Promise<TModel[]>[] = [];
+        const chunks: Promise<TDetail[]>[] = [];
         let i = 0;
         const len = requests.length;
         while (i < len) {
           chunks.push(
-            new Promise<TModel[]>((res, rej) => {
+            new Promise<TDetail[]>((res, rej) => {
               const items = requests.slice(i, (i += 25));
               const params: DocumentClient.BatchWriteItemInput = {
                 RequestItems: {
@@ -127,7 +129,7 @@ export class DynamoDBConnector<TModel> {
                   rej(new Error(`Couldn't create the ${this.names.singular}.`));
                   return;
                 }
-                res(items.map(ri => (ri.PutRequest.Item as any) as TModel));
+                res(items.map(ri => (ri.PutRequest.Item as any) as TDetail));
               });
             })
           );
@@ -139,8 +141,8 @@ export class DynamoDBConnector<TModel> {
     });
   };
 
-  public update = (id: string, item: TModel): Promise<TModel> => {
-    return new Promise<TModel>((res, rej) => {
+  public update = (id: string, item: TDetail): Promise<TDetail> => {
+    return new Promise<TDetail>((res, rej) => {
       const data = {
         ...item,
         id
@@ -168,7 +170,7 @@ export class DynamoDBConnector<TModel> {
           return;
         }
 
-        res(params.Item as TModel);
+        res(params.Item as TDetail);
       });
     });
   };
