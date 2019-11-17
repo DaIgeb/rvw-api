@@ -20,7 +20,7 @@ export class Route {
         TableName: table,
         FilterExpression: '#name = :name',
         ExpressionAttributeNames: {
-          '#name': 'name'
+          '#name': 'id'
         },
         ExpressionAttributeValues: {
           ':name': id
