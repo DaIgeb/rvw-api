@@ -83,6 +83,18 @@ export const remove: APIGatewayProxyHandler = async (event, _) => {
   }
 };
 
+export const attachFile: APIGatewayProxyHandler = async (event, _) => {
+  const service = initService(event);
+
+  try {
+    const response = await service.attachFile(event.pathParameters.id, JSON.parse(event.body));
+
+    return createResponse(200, response);
+  } catch (err) {
+    console.log(err);
+    return createResponse(500, "Couldn't save file for item");
+  }
+};
 const initService = (event: APIGatewayProxyEvent) => {
   const subject = event.requestContext.authorizer ? getSub(event.requestContext.authorizer) : 'anonymous';
   return new Route(dynamoDb, subject);

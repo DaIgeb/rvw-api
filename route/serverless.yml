@@ -56,6 +56,13 @@ functions:
           path: /{id}
           method: get
           cors: true
+  attachFile:
+    handler: src/handler.attachFile
+    events:
+      - http:
+          path: /{id}/attachFile
+          method: post
+          cors: true
   update:
     handler: src/handler.update
     events:

@@ -11,25 +11,25 @@ provider:
   # Provide permissions for this service to manipulate S3.
   environment:
     BUCKET_NAME: ${self:service}
-      STAGE: ${opt:stage, self:provider.stage}
-      AUTH0_DOMAIN: ${file(../secrets.yml):AUTH0_DOMAIN}
-      AUTH0_API_AUDIENCE: ${file(../secrets.yml):AUTH0_API_AUDIENCE}
+    STAGE: ${opt:stage, self:provider.stage}
+    AUTH0_DOMAIN: ${file(../secrets.yml):AUTH0_DOMAIN}
+    AUTH0_API_AUDIENCE: ${file(../secrets.yml):AUTH0_API_AUDIENCE}
   region: eu-central-1
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - "s3:*"
-      Resource: "arn:aws:s3:::[bucketName]/*"
+      Resource: "arn:aws:s3:::${self:provider.environment.BUCKET_NAME}/*"
 
 # Expose function to public API for POST requests.
 functions:
   auth:
     handler: src/handler.auth
   requestUploadURL:
-    handler: handler.requestUploadURL
+    handler: src/handler.requestUploadURL
     events:
       - http:
-          path: requestUploadURL
+          path: /
           method: post
           cors: true
           authorizer: auth
@@ -37,7 +37,7 @@ functions:
 # Give service access to the specific S3 bucket.
 resources:
   Resources:
-        GatewayResponse:
+    GatewayResponse:
       Type: 'AWS::ApiGateway::GatewayResponse'
       Properties:
         ResponseParameters:

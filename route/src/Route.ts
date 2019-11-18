@@ -1,6 +1,6 @@
 import * as AWS from 'aws-sdk';
 import * as uuid from 'uuid';
-import { IList, IDetail, validate } from 'rvw-model/lib/route';
+import { IList, IDetail, validate, findTimeline } from 'rvw-model/lib/route';
 
 import { table } from './config';
 import { DocumentClient, WriteRequest, ScanInput } from 'aws-sdk/clients/dynamodb';
@@ -10,7 +10,7 @@ export class Route {
   constructor(
     private _db: AWS.DynamoDB.DocumentClient,
     private _userEmail: string
-  ) {}
+  ) { }
 
   public currentSubject = () => this._userEmail;
 
@@ -47,6 +47,7 @@ export class Route {
       });
     });
   };
+
   public list = (): Promise<IList[]> => {
     return new Promise((res, rej) => {
       const params: ScanInput = {
@@ -200,4 +201,17 @@ export class Route {
       });
     });
   };
+
+  public async attachFile(id: string, arg1: { path: string; type: any; from: string; until?: string; }): Promise<IDetail> {
+    const item = await this.get(id);
+
+    const timeline = findTimeline(item, arg1.from, arg1.until);
+    if (timeline) {
+      timeline.files.push({ path: arg1.path, type: arg1.type });
+
+      return this.update(id, item);
+    }
+
+    throw new Error('No timeline matched the params');
+  }
 }
