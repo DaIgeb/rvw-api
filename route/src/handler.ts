@@ -3,7 +3,7 @@ export { auth } from "./auth";
 import { DynamoDB } from "aws-sdk";
 import { APIGatewayProxyHandler, APIGatewayProxyEvent } from "aws-lambda";
 
-import { Route } from "./Route";
+import { Route, HttpError } from "./Route";
 import { createResponse } from "./util";
 import { getSub } from "./auth";
 
@@ -91,6 +91,9 @@ export const attachFile: APIGatewayProxyHandler = async (event, _) => {
 
     return createResponse(200, response);
   } catch (err) {
+    if (err instanceof HttpError) {
+      return createResponse(err.statusCode, err.message);
+    }
     console.log(err);
     return createResponse(500, "Couldn't save file for item");
   }

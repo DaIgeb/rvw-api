@@ -1,6 +1,6 @@
 import * as AWS from 'aws-sdk';
 import * as uuid from 'uuid';
-import { IList, IDetail, validate, findTimeline } from 'rvw-model/lib/route';
+import { IList, IDetail, validate, findTimeline, IAttachFileBody } from 'rvw-model/lib/route';
 
 import { table } from './config';
 import { DocumentClient, WriteRequest, ScanInput } from 'aws-sdk/clients/dynamodb';
@@ -150,9 +150,11 @@ export class Route {
   };
 
   public update = (id: string, route: IDetail): Promise<IDetail> => {
-    return new Promise<IDetail>((res, rej) => {
+    return new Promise<IDetail>(async (res, rej) => {
+      const { updatedAt, updateAt, createdAt, user, ...relevantData } = route as any;
+      const item = await this.get(id);
       const data = {
-        ...route,
+        ...relevantData,
         id
       };
 
@@ -166,8 +168,9 @@ export class Route {
       const params = {
         TableName: table,
         Item: {
+          ...item,
           ...data,
-          updateAt: timestamp
+          updatedAt: timestamp
         }
       };
 
@@ -202,16 +205,32 @@ export class Route {
     });
   };
 
-  public async attachFile(id: string, arg1: { path: string; type: any; from: string; until?: string; }): Promise<IDetail> {
+  public async attachFile(id: string, arg1: IAttachFileBody): Promise<IDetail> {
     const item = await this.get(id);
+
+    if (!item) {
+      throw new HttpError(404, `Route with id [${id}] not found`);
+    }
 
     const timeline = findTimeline(item, arg1.from, arg1.until);
     if (timeline) {
+      if (!timeline.files) {
+        timeline.files = [];
+      }
+      timeline.files = timeline.files.filter(f => f.type !== arg1.type);
       timeline.files.push({ path: arg1.path, type: arg1.type });
 
-      return this.update(id, item);
+      const { updatedAt, ...data } = item as any;
+
+      return this.update(id, data);
     }
 
-    throw new Error('No timeline matched the params');
+    throw new HttpError(404, `Route with timeline [${arg1.from}/${arg1.until}] not found`);
+  }
+}
+
+export class HttpError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
   }
 }

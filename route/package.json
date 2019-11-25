@@ -11,7 +11,7 @@
     "aws-sdk": "^2.546.0",
     "jsonwebtoken": "^8.5.1",
     "jwks-rsa": "^1.6.0",
-    "rvw-model": "^1.0.5",
+    "rvw-model": "^1.0.6",
     "source-map-support": "^0.5.13"
   },
   "devDependencies": {
