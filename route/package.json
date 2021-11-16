@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@types/uuid": "^3.4.5",
-    "aws-sdk": "^2.546.0",
+    "aws-sdk": "^2.814.0",
     "jsonwebtoken": "^8.5.1",
     "jwks-rsa": "^1.6.0",
     "rvw-model": "^1.0.6",
