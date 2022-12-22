@@ -10,7 +10,7 @@
     "@types/uuid": "^3.4.5",
     "ajv": "^6.10.2",
     "aws-sdk": "^2.546.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "jwks-rsa": "^1.6.0",
     "rvw-model": "^1.0.3",
     "source-map-support": "^0.5.13"
